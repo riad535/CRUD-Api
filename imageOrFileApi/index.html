@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student API Test Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f4f4f4;
+    }
+    h2 {
+      color: #333;
+      margin-top: 30px;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    input, button, select {
+      margin: 8px 0;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #output {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    img {
+      width: 100px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📡 Student API Tester</h1>
+
+  <!-- Registration -->
+  <h2>🔐 Register</h2>
+  <form id="registerForm">
+    <input type="text" name="name" placeholder="Full Name" required>
+    <input type="number" name="age" placeholder="Age" required>
+    <input type="text" name="city" placeholder="City" required>
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <button type="submit">Register</button>
+  </form>
+
+  <!-- Login -->
+  <h2>🔑 Login</h2>
+  <form id="loginForm">
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+  </form>
+
+  <div id="loggedInSection" class="hidden">
+    <h2>👤 Logged in as <span id="loggedInUser"></span></h2>
+
+    <!-- Upload Images -->
+    <h2>🖼️ Upload Images</h2>
+    <form id="imageUploadForm" enctype="multipart/form-data">
+      <input type="file" name="images[]" multiple accept="image/*" required>
+      <button type="submit">Upload Images</button>
+    </form>
+
+    <!-- Upload Files -->
+    <h2>📁 Upload Files</h2>
+    <form id="fileUploadForm" enctype="multipart/form-data">
+      <input type="file" name="files[]" multiple required>
+      <button type="submit">Upload Files</button>
+    </form>
+
+    <!-- Update Info -->
+    <h2>✏️ Update Student Info</h2>
+    <form id="updateForm">
+      <input type="text" name="name" placeholder="Name">
+      <input type="number" name="age" placeholder="Age">
+      <input type="text" name="city" placeholder="City">
+      <input type="text" name="username" placeholder="Username">
+      <input type="password" name="password" placeholder="Password (leave empty to keep)">
+      <button type="submit">Update Info</button>
+    </form>
+
+    <h2>🗑️ Delete Options</h2>
+
+    <!-- Delete a specific file or image -->
+    <form id="deleteFileForm">
+      <input type="number" name="id" placeholder="Student ID" required>
+      <select name="type">
+        <option value="image">Image</option>
+        <option value="file">File</option>
+      </select>
+      <input type="text" name="file" placeholder="Full file path (e.g. uploads/img1.png)" required>
+      <button type="submit" style="background:#e74c3c;">Delete Specific File/Image</button>
+    </form>
+
+    <br>
+
+    <!-- Delete entire student -->
+    <form id="deleteStudentForm">
+      <input type="number" name="id" placeholder="Student ID" required>
+      <button type="submit" style="background:#c0392b;">Delete Entire Student</button>
+    </form>
+
+
+    <!-- View Student Data -->
+    <h2>📜 View My Data</h2>
+    <button id="viewDataBtn">View My Data</button>
+    <div id="viewSection"></div>
+  </div>
+
+  <h2>📤 API Response</h2>
+  <div id="output">Responses will appear here...</div>
+
+  <script>
+    const apiBase = "api.php";
+    let userId = null;
+
+    const output = (data) => {
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    };
+
+    // Register
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const res = await fetch(`${apiBase}?type=register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      output(await res.json());
+    });
+
+    // Login
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const res = await fetch(`${apiBase}?type=login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      output(json);
+      if (json.id) {
+        userId = json.id;
+        localStorage.setItem("userId", userId);
+        document.getElementById("loggedInSection").classList.remove("hidden");
+        document.getElementById("loggedInUser").textContent = data.username;
+      }
+    });
+
+    // Upload Images
+    document.getElementById("imageUploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const res = await fetch(`${apiBase}?type=upload_image&id=${userId}`, {
+        method: "POST",
+        body: formData
+      });
+      output(await res.json());
+    });
+
+    // Upload Files
+    document.getElementById("fileUploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const res = await fetch(`${apiBase}?type=upload_file&id=${userId}`, {
+        method: "POST",
+        body: formData
+      });
+      output(await res.json());
+    });
+
+    // Update Info
+    document.getElementById("updateForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const res = await fetch(`${apiBase}?id=${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      output(await res.json());
+    });
+
+    // View Student Data
+    document.getElementById("viewDataBtn").addEventListener("click", async () => {
+      const res = await fetch(`${apiBase}?id=${userId}`);
+      const json = await res.json();
+      output(json);
+
+      const viewSection = document.getElementById("viewSection");
+      viewSection.innerHTML = "<h3>Images:</h3>";
+      json.images?.forEach(img => {
+        viewSection.innerHTML += `
+          <div>
+            <img src="${img}" alt="image">
+            <a href="${apiBase}?type=download&file=${img}">Download</a>
+          </div>`;
+      });
+
+    // Delete specific image or file
+    document.getElementById("deleteFileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const url = `${apiBase}?id=${data.id}&type=${data.type}&file=${encodeURIComponent(data.file)}`;
+
+      const res = await fetch(url, { method: "DELETE" });
+      const json = await res.json();
+      alert(json.message || json.error);
+    });
+
+    // Delete entire student
+    document.getElementById("deleteStudentForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const url = `${apiBase}?id=${data.id}`;
+
+      const res = await fetch(url, { method: "DELETE" });
+      const json = await res.json();
+      alert(json.message || json.error);
+    });
+
+      // Logout
+      document.getElementById("logoutBtn").addEventListener("click", async () => {
+        const res = await fetch(`${apiBase}?type=logout`, { method: "POST" });
+        const json = await res.json();
+        output(json);
+        localStorage.removeItem("userId");
+        userId = null;
+        document.getElementById("loggedInSection").classList.add("hidden");
+      });
+
+      viewSection.innerHTML += "<h3>Files:</h3>";
+      json.files?.forEach(file => {
+        viewSection.innerHTML += `
+          <div>
+            <a href="${apiBase}?type=download&file=${file}">${file.split("/").pop()}</a>
+          </div>`;
+      });
+    });
+
+    // Auto-login if stored
+    if (localStorage.getItem("userId")) {
+      userId = localStorage.getItem("userId");
+      document.getElementById("loggedInSection").classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
